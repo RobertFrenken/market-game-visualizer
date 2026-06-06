@@ -45,3 +45,6 @@ The default scenario uses three built-in house policies:
 - follow demand
 - flatten demand
 - price aware
+
+If the visualizer should use Python as the source of truth instead of mirrored
+TypeScript rules, see `docs/python-api.md`.
