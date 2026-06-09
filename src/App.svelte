@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { Background, BackgroundVariant, Controls, MiniMap, SvelteFlow } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
-  import type { NodeEventWithPointer, NodeTypes } from '@xyflow/svelte';
+  import type { EdgeTypes, NodeEventWithPointer, NodeTypes } from '@xyflow/svelte';
 
   import HouseNode from './lib/components/HouseNode.svelte';
   import MetricsPanel from './lib/components/MetricsPanel.svelte';
@@ -10,6 +10,7 @@
   import NodeInspector from './lib/components/NodeInspector.svelte';
   import PriceCurve from './lib/components/PriceCurve.svelte';
   import ScenarioControls from './lib/components/ScenarioControls.svelte';
+  import SignalEdge from './lib/components/SignalEdge.svelte';
   import TimelineControls from './lib/components/TimelineControls.svelte';
   import { graphForHour, PHASES, phaseLabel, type FlowNode, type Phase } from './lib/flow/graph';
   import { EPISODE_HOURS, formatNumber, type PolicyKind } from './lib/market/rules';
@@ -18,6 +19,9 @@
   const nodeTypes: NodeTypes = {
     house: HouseNode,
     market: MarketNode,
+  };
+  const edgeTypes: EdgeTypes = {
+    signal: SignalEdge,
   };
 
   let houses = $state(DEFAULT_HOUSES);
@@ -107,6 +111,7 @@
           nodes={graph.nodes}
           edges={graph.edges}
           {nodeTypes}
+          {edgeTypes}
           fitView
           minZoom={0.45}
           maxZoom={1.35}

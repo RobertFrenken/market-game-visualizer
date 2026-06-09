@@ -1,4 +1,4 @@
-import { actionDelta, actionLabel, choosePolicyAction } from './policies';
+import { actionDelta, actionLabel, choosePolicyDecision } from './policies';
 import {
   INITIAL_PRICE,
   PROFILE1_DEMAND,
@@ -23,10 +23,12 @@ export interface HouseHour {
   baseDemand: number;
   proposedLoad: number;
   marketLoad: number;
+  batteryDelta: number;
   batteryBefore: number;
   batteryAfter: number;
   cost: number;
   warning: string;
+  decisionReason: string;
 }
 
 export interface HourState {
@@ -58,14 +60,16 @@ export function simulateMarket(
     const houseHours = houses.map((house) => {
       const batteryBefore = batteries.get(house.id) ?? 0;
       const baseDemand = demand[hour];
-      const action = choosePolicyAction(house.policy, {
+      const decision = choosePolicyDecision(house.policy, {
         price: currentPrice,
         hour,
         batteryCharge: batteryBefore,
         demand,
         priceHistory,
       });
-      const proposedLoad = baseDemand + actionDelta(action);
+      const action = decision.action;
+      const batteryDelta = actionDelta(action);
+      const proposedLoad = baseDemand + batteryDelta;
       const clamp = clampMarketLoad(proposedLoad, baseDemand, batteryBefore);
       const marketLoad = clamp.marketLoad;
       const batteryAfter = batteryBefore + marketLoad - baseDemand;
@@ -80,10 +84,12 @@ export function simulateMarket(
         baseDemand,
         proposedLoad,
         marketLoad,
+        batteryDelta,
         batteryBefore,
         batteryAfter,
         cost,
         warning: clamp.warning,
+        decisionReason: decision.reason,
       };
     });
 

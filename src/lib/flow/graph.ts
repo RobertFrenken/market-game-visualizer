@@ -22,6 +22,7 @@ export type MarketNodeData = {
   nextPrice: number;
   totalMarketLoad: number;
   averageMarketLoad: number;
+  houseCount: number;
 };
 
 export type HouseNodeData = {
@@ -38,11 +39,22 @@ export type HouseNodeData = {
   batteryAfter: number;
   cost: number;
   price: number;
+  batteryDelta: number;
   warning: string;
+  decisionReason: string;
 };
 
 export type FlowNodeData = MarketNodeData | HouseNodeData;
 export type FlowNode = Node<FlowNodeData, 'market' | 'house'>;
+
+export type SignalEdgeData = {
+  kind: 'price' | 'demand';
+  label: string;
+  phase: Phase;
+  active: boolean;
+};
+
+export type SignalEdge = Edge<SignalEdgeData, 'signal'>;
 
 const HOUSE_POSITIONS = [
   { x: 500, y: 20 },
@@ -52,16 +64,11 @@ const HOUSE_POSITIONS = [
   { x: 500, y: 980 },
 ];
 
-const EDGE_STYLES = {
-  price: 'stroke: #2f6f9f; stroke-width: 3;',
-  demand: 'stroke: #8a5a12; stroke-width: 3;',
-};
-
 export function graphForHour(
   state: HourState,
   phase: Phase,
   selectedNodeId = 'market',
-): { nodes: FlowNode[]; edges: Edge[] } {
+): { nodes: FlowNode[]; edges: SignalEdge[] } {
   const marketNode: FlowNode = {
     id: 'market',
     type: 'market',
@@ -77,6 +84,7 @@ export function graphForHour(
       nextPrice: state.nextPrice,
       totalMarketLoad: state.totalMarketLoad,
       averageMarketLoad: state.averageMarketLoad,
+      houseCount: state.houses.length,
     },
   };
 
@@ -101,31 +109,41 @@ export function graphForHour(
       batteryAfter: house.batteryAfter,
       cost: house.cost,
       price: state.price,
+      batteryDelta: house.batteryDelta,
       warning: house.warning,
+      decisionReason: house.decisionReason,
     },
   }));
 
-  const priceEdges: Edge[] = state.houses.map((house) => ({
+  const priceEdges: SignalEdge[] = state.houses.map((house) => ({
     id: `price-${house.id}`,
-    type: 'smoothstep',
+    type: 'signal',
     source: 'market',
     target: house.id,
     animated: true,
-    label: `read ${formatPrice(state.price)}`,
-    style: EDGE_STYLES.price,
+    data: {
+      kind: 'price',
+      label: `read ${formatPrice(state.price)}`,
+      phase,
+      active: phase === 'price',
+    },
   }));
 
-  const demandEdges: Edge[] = state.houses.map((house) => ({
+  const demandEdges: SignalEdge[] = state.houses.map((house) => ({
     id: `demand-${house.id}`,
-    type: 'smoothstep',
+    type: 'signal',
     source: house.id,
     target: 'market',
     animated: true,
-    label: `publish ${formatEnergy(house.marketLoad)}`,
-    style: EDGE_STYLES.demand,
+    data: {
+      kind: 'demand',
+      label: `publish ${formatEnergy(house.marketLoad)}`,
+      phase,
+      active: phase === 'submit',
+    },
   }));
 
-  const edgesByPhase: Record<Phase, Edge[]> = {
+  const edgesByPhase: Record<Phase, SignalEdge[]> = {
     price: priceEdges,
     decide: [],
     submit: demandEdges,

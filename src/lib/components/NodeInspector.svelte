@@ -3,6 +3,7 @@
 
   import { formatCost, formatEnergy, formatPrice } from '../format/display';
   import type { FlowNodeData } from '../flow/graph';
+  import { formatNumber } from '../market/rules';
 
   interface Props {
     data: FlowNodeData;
@@ -40,6 +41,19 @@
       <div><dt>Total load</dt><dd>{formatEnergy(data.totalMarketLoad)}</dd></div>
       <div><dt>Average load</dt><dd>{formatEnergy(data.averageMarketLoad)}</dd></div>
     </dl>
+    <section class="calculation" aria-label="Market calculation">
+      <h3>Calculation</h3>
+      <div>
+        <code>average_load = total_load / houses</code>
+        <span>
+          {formatEnergy(data.averageMarketLoad)} = {formatEnergy(data.totalMarketLoad)} / {data.houseCount}
+        </span>
+      </div>
+      <div>
+        <code>next_price = price_rule(average_load)</code>
+        <span>{formatPrice(data.nextPrice)} from {formatEnergy(data.averageMarketLoad)}</span>
+      </div>
+    </section>
   {:else}
     <div class="summary">
       <div>
@@ -64,6 +78,30 @@
       <div><dt>Battery before</dt><dd>{formatEnergy(data.batteryBefore)}</dd></div>
       <div><dt>Battery after</dt><dd>{formatEnergy(data.batteryAfter)}</dd></div>
     </dl>
+    <section class="calculation" aria-label="House calculation">
+      <h3>Calculation</h3>
+      <div>
+        <code>proposed_load = base_demand + battery_delta</code>
+        <span>
+          {formatEnergy(data.proposedLoad)} = {formatEnergy(data.baseDemand)} +
+          {formatEnergy(data.batteryDelta)}
+        </span>
+      </div>
+      <div>
+        <code>market_load = clamp(proposed_load)</code>
+        <span>{formatEnergy(data.marketLoad)}{data.warning ? `, ${data.warning}` : ''}</span>
+      </div>
+      <div>
+        <code>cost = price * market_load</code>
+        <span>
+          {formatCost(data.cost)} = {formatPrice(data.price)} * {formatNumber(data.marketLoad)}
+        </span>
+      </div>
+      <div>
+        <code>policy_reason</code>
+        <span>{data.decisionReason}</span>
+      </div>
+    </section>
     {#if data.warning}
       <p>{data.warning}</p>
     {/if}
@@ -137,6 +175,38 @@
     color: #172033;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .calculation {
+    display: grid;
+    gap: 8px;
+    border: 1px solid #e2e6ed;
+    border-radius: 6px;
+    padding: 10px;
+    background: #fbfcfe;
+  }
+
+  .calculation h3 {
+    margin: 0;
+    color: #172033;
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+
+  .calculation div {
+    display: grid;
+    gap: 3px;
+  }
+
+  code {
+    color: #334155;
+    font-size: 12px;
+  }
+
+  .calculation span {
+    color: #596579;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   p {

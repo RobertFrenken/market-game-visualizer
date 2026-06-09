@@ -39,8 +39,9 @@ https://robertfrenken.github.io/market-game-visualizer/
 
 - `src/lib/market`: pure TypeScript market rules and deterministic simulation.
 - `src/lib/flow`: maps simulation state to typed Svelte Flow nodes and edges.
-- `src/lib/components`: custom market/house nodes, scenario controls, node
-  inspector, timeline controls, metrics table, and price chart.
+- `src/lib/components`: custom market/house nodes, custom signal edges,
+  scenario controls, calculation inspector, timeline controls, metrics table,
+  and price chart.
 - `src/lib/format`: shared display formatting for prices, costs, energy, and
   percentages.
 
@@ -58,6 +59,9 @@ The default scenario uses three built-in house policies:
 - follow demand
 - flatten demand
 - price aware
+
+Each policy returns both the selected battery action and a short decision reason
+so the inspector can show why the agent charged, discharged, or stayed neutral.
 
 If the visualizer should use Python as the source of truth instead of mirrored
 TypeScript rules, see `docs/python-api.md`.
