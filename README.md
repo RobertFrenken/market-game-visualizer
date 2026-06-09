@@ -38,8 +38,11 @@ https://robertfrenken.github.io/market-game-visualizer/
 ## Implementation
 
 - `src/lib/market`: pure TypeScript market rules and deterministic simulation.
-- `src/lib/flow`: maps simulation state to Svelte Flow nodes and edges.
-- `src/lib/components`: timeline controls, metrics table, and price chart.
+- `src/lib/flow`: maps simulation state to typed Svelte Flow nodes and edges.
+- `src/lib/components`: custom market/house nodes, scenario controls, node
+  inspector, timeline controls, metrics table, and price chart.
+- `src/lib/format`: shared display formatting for prices, costs, energy, and
+  percentages.
 
 The market rules mirror the Python shared-core model:
 

@@ -1,5 +1,6 @@
 import { Position, type Edge, type Node } from '@xyflow/svelte';
-import { formatNumber } from '../market/rules';
+import { formatEnergy, formatPrice } from '../format/display';
+import type { PolicyKind } from '../market/rules';
 import type { HourState } from '../market/simulator';
 
 export type Phase = 'price' | 'decide' | 'submit' | 'aggregate';
@@ -13,73 +14,95 @@ const PHASE_LABELS: Record<Phase, string> = {
   aggregate: 'Market aggregates and computes next price',
 };
 
-const HOUSE_POSITIONS = [
-  { x: 455, y: 40 },
-  { x: 455, y: 260 },
-  { x: 455, y: 480 },
-  { x: 455, y: 700 },
-  { x: 455, y: 920 },
-];
-
-const NODE_STYLES = {
-  market:
-    'white-space: pre-line; width: 270px; border: 2px solid #355c7d; background: #f4fbff; color: #122536; border-radius: 8px; padding: 12px; font-size: 13px;',
-  house:
-    'white-space: pre-line; width: 240px; border: 1px solid #7a8f4a; background: #fbfff4; color: #22310f; border-radius: 8px; padding: 12px; font-size: 13px;',
+export type MarketNodeData = {
+  kind: 'market';
+  active: boolean;
+  hour: number;
+  price: number;
+  nextPrice: number;
+  totalMarketLoad: number;
+  averageMarketLoad: number;
 };
+
+export type HouseNodeData = {
+  kind: 'house';
+  active: boolean;
+  id: string;
+  name: string;
+  policy: PolicyKind;
+  actionLabel: string;
+  baseDemand: number;
+  proposedLoad: number;
+  marketLoad: number;
+  batteryBefore: number;
+  batteryAfter: number;
+  cost: number;
+  price: number;
+  warning: string;
+};
+
+export type FlowNodeData = MarketNodeData | HouseNodeData;
+export type FlowNode = Node<FlowNodeData, 'market' | 'house'>;
+
+const HOUSE_POSITIONS = [
+  { x: 500, y: 20 },
+  { x: 500, y: 260 },
+  { x: 500, y: 500 },
+  { x: 500, y: 740 },
+  { x: 500, y: 980 },
+];
 
 const EDGE_STYLES = {
   price: 'stroke: #2f6f9f; stroke-width: 3;',
   demand: 'stroke: #8a5a12; stroke-width: 3;',
 };
 
-function houseNodeLabel(house: HourState['houses'][number], phase: Phase): string {
-  const active = phase === 'decide' || phase === 'submit';
-  const prefix = active ? '● ' : '';
-  return [
-    `${prefix}${house.name}`,
-    `policy: ${house.policy}`,
-    `reads: $${formatNumber(house.cost / house.marketLoad || 0, 3)}/kWh`,
-    `base: ${formatNumber(house.baseDemand)} kWh`,
-    `battery: ${formatNumber(house.batteryBefore)} -> ${formatNumber(house.batteryAfter)} kWh`,
-    `action: ${house.actionLabel}`,
-    `publishes: ${formatNumber(house.marketLoad)} kWh`,
-    `cost: $${formatNumber(house.cost, 3)}`,
-  ].join('\n');
-}
-
-function marketLabel(state: HourState, phase: Phase): string {
-  const active = phase === 'price' || phase === 'aggregate';
-  const prefix = active ? '● ' : '';
-  return [
-    `${prefix}Market Maker`,
-    `hour: ${state.hour}`,
-    `price read by houses: $${formatNumber(state.price, 3)}/kWh`,
-    `total demand: ${formatNumber(state.totalMarketLoad)} kWh`,
-    `average demand: ${formatNumber(state.averageMarketLoad)} kWh`,
-    `next price: $${formatNumber(state.nextPrice, 3)}/kWh`,
-  ].join('\n');
-}
-
-export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; edges: Edge[] } {
-  const marketNode: Node = {
+export function graphForHour(
+  state: HourState,
+  phase: Phase,
+  selectedNodeId = 'market',
+): { nodes: FlowNode[]; edges: Edge[] } {
+  const marketNode: FlowNode = {
     id: 'market',
-    type: 'default',
+    type: 'market',
     position: { x: 70, y: 260 },
     targetPosition: Position.Right,
     sourcePosition: Position.Right,
-    data: { label: marketLabel(state, phase) },
-    style: NODE_STYLES.market,
+    selected: selectedNodeId === 'market',
+    data: {
+      kind: 'market',
+      active: phase === 'price' || phase === 'aggregate',
+      hour: state.hour,
+      price: state.price,
+      nextPrice: state.nextPrice,
+      totalMarketLoad: state.totalMarketLoad,
+      averageMarketLoad: state.averageMarketLoad,
+    },
   };
 
-  const houseNodes: Node[] = state.houses.map((house, index) => ({
+  const houseNodes: FlowNode[] = state.houses.map((house, index) => ({
     id: house.id,
-    type: 'default',
-    position: HOUSE_POSITIONS[index] ?? { x: 40, y: 50 + index * 215 },
+    type: 'house',
+    position: HOUSE_POSITIONS[index] ?? { x: 500, y: 50 + index * 240 },
     targetPosition: Position.Left,
     sourcePosition: Position.Left,
-    data: { label: houseNodeLabel(house, phase) },
-    style: NODE_STYLES.house,
+    selected: selectedNodeId === house.id,
+    data: {
+      kind: 'house',
+      active: phase === 'decide' || phase === 'submit',
+      id: house.id,
+      name: house.name,
+      policy: house.policy,
+      actionLabel: house.actionLabel,
+      baseDemand: house.baseDemand,
+      proposedLoad: house.proposedLoad,
+      marketLoad: house.marketLoad,
+      batteryBefore: house.batteryBefore,
+      batteryAfter: house.batteryAfter,
+      cost: house.cost,
+      price: state.price,
+      warning: house.warning,
+    },
   }));
 
   const priceEdges: Edge[] = state.houses.map((house) => ({
@@ -88,7 +111,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     source: 'market',
     target: house.id,
     animated: true,
-    label: `read price $${formatNumber(state.price, 3)}`,
+    label: `read ${formatPrice(state.price)}`,
     style: EDGE_STYLES.price,
   }));
 
@@ -98,7 +121,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     source: house.id,
     target: 'market',
     animated: true,
-    label: `publish ${formatNumber(house.marketLoad)} kWh`,
+    label: `publish ${formatEnergy(house.marketLoad)}`,
     style: EDGE_STYLES.demand,
   }));
 

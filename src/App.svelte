@@ -2,24 +2,36 @@
   import { onMount } from 'svelte';
   import { Background, BackgroundVariant, Controls, MiniMap, SvelteFlow } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
+  import type { NodeEventWithPointer, NodeTypes } from '@xyflow/svelte';
 
+  import HouseNode from './lib/components/HouseNode.svelte';
   import MetricsPanel from './lib/components/MetricsPanel.svelte';
+  import MarketNode from './lib/components/MarketNode.svelte';
+  import NodeInspector from './lib/components/NodeInspector.svelte';
   import PriceCurve from './lib/components/PriceCurve.svelte';
+  import ScenarioControls from './lib/components/ScenarioControls.svelte';
   import TimelineControls from './lib/components/TimelineControls.svelte';
-  import { graphForHour, PHASES, phaseLabel, type Phase } from './lib/flow/graph';
-  import { EPISODE_HOURS, formatNumber } from './lib/market/rules';
-  import { simulateMarket } from './lib/market/simulator';
+  import { graphForHour, PHASES, phaseLabel, type FlowNode, type Phase } from './lib/flow/graph';
+  import { EPISODE_HOURS, formatNumber, type PolicyKind } from './lib/market/rules';
+  import { DEFAULT_HOUSES, simulateMarket } from './lib/market/simulator';
 
-  const states = simulateMarket();
+  const nodeTypes: NodeTypes = {
+    house: HouseNode,
+    market: MarketNode,
+  };
 
+  let houses = $state(DEFAULT_HOUSES);
   let hour = $state(0);
   let phaseIndex = $state(0);
   let playing = $state(false);
   let loaded = $state(false);
+  let selectedNodeId = $state('market');
 
+  let states = $derived(simulateMarket(houses));
   let phase = $derived(PHASES[phaseIndex]);
   let currentState = $derived(states[hour]);
-  let graph = $derived(graphForHour(currentState, phase));
+  let graph = $derived(graphForHour(currentState, phase, selectedNodeId));
+  let selectedNode = $derived(graph.nodes.find((node) => node.id === selectedNodeId) ?? graph.nodes[0]);
 
   function setHour(nextHour: number) {
     hour = Math.max(0, Math.min(EPISODE_HOURS - 1, nextHour));
@@ -57,6 +69,14 @@
     playing = !playing;
   }
 
+  function setHousePolicy(houseId: string, policy: PolicyKind) {
+    houses = houses.map((house) => (house.id === houseId ? { ...house, policy } : house));
+  }
+
+  function selectNode({ node }: Parameters<NodeEventWithPointer<MouseEvent | TouchEvent, FlowNode>>[0]) {
+    selectedNodeId = node.id;
+  }
+
   $effect(() => {
     if (!playing) return;
     const timer = window.setInterval(stepForward, 1100);
@@ -86,10 +106,12 @@
         <SvelteFlow
           nodes={graph.nodes}
           edges={graph.edges}
+          {nodeTypes}
           fitView
           minZoom={0.45}
           maxZoom={1.35}
           nodesDraggable={false}
+          onnodeclick={selectNode}
         >
           <Controls />
           <MiniMap pannable zoomable />
@@ -99,6 +121,8 @@
     </section>
 
     <aside class="side-panel" aria-label="Simulation controls and metrics">
+      <ScenarioControls {houses} onPolicyChange={setHousePolicy} />
+
       <TimelineControls
         {hour}
         {phase}
@@ -118,6 +142,7 @@
       </div>
 
       <MetricsPanel state={currentState} />
+      <NodeInspector data={selectedNode.data} />
       <PriceCurve {states} {hour} />
 
       <section class="phase-note">
