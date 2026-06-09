@@ -6,6 +6,13 @@ export type Phase = 'price' | 'decide' | 'submit' | 'aggregate';
 
 export const PHASES: Phase[] = ['price', 'decide', 'submit', 'aggregate'];
 
+const PHASE_LABELS: Record<Phase, string> = {
+  price: 'Market publishes current price',
+  decide: 'House policies choose battery actions',
+  submit: 'Houses submit market loads',
+  aggregate: 'Market aggregates and computes next price',
+};
+
 const HOUSE_POSITIONS = [
   { x: 455, y: 40 },
   { x: 455, y: 260 },
@@ -13,6 +20,18 @@ const HOUSE_POSITIONS = [
   { x: 455, y: 700 },
   { x: 455, y: 920 },
 ];
+
+const NODE_STYLES = {
+  market:
+    'white-space: pre-line; width: 270px; border: 2px solid #355c7d; background: #f4fbff; color: #122536; border-radius: 8px; padding: 12px; font-size: 13px;',
+  house:
+    'white-space: pre-line; width: 240px; border: 1px solid #7a8f4a; background: #fbfff4; color: #22310f; border-radius: 8px; padding: 12px; font-size: 13px;',
+};
+
+const EDGE_STYLES = {
+  price: 'stroke: #2f6f9f; stroke-width: 3;',
+  demand: 'stroke: #8a5a12; stroke-width: 3;',
+};
 
 function houseNodeLabel(house: HourState['houses'][number], phase: Phase): string {
   const active = phase === 'decide' || phase === 'submit';
@@ -50,8 +69,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     targetPosition: Position.Right,
     sourcePosition: Position.Right,
     data: { label: marketLabel(state, phase) },
-    style:
-      'white-space: pre-line; width: 270px; border: 2px solid #355c7d; background: #f4fbff; color: #122536; border-radius: 8px; padding: 12px; font-size: 13px;',
+    style: NODE_STYLES.market,
   };
 
   const houseNodes: Node[] = state.houses.map((house, index) => ({
@@ -61,8 +79,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     targetPosition: Position.Left,
     sourcePosition: Position.Left,
     data: { label: houseNodeLabel(house, phase) },
-    style:
-      'white-space: pre-line; width: 240px; border: 1px solid #7a8f4a; background: #fbfff4; color: #22310f; border-radius: 8px; padding: 12px; font-size: 13px;',
+    style: NODE_STYLES.house,
   }));
 
   const priceEdges: Edge[] = state.houses.map((house) => ({
@@ -72,7 +89,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     target: house.id,
     animated: true,
     label: `read price $${formatNumber(state.price, 3)}`,
-    style: 'stroke: #2f6f9f; stroke-width: 3;',
+    style: EDGE_STYLES.price,
   }));
 
   const demandEdges: Edge[] = state.houses.map((house) => ({
@@ -82,7 +99,7 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
     target: 'market',
     animated: true,
     label: `publish ${formatNumber(house.marketLoad)} kWh`,
-    style: 'stroke: #8a5a12; stroke-width: 3;',
+    style: EDGE_STYLES.demand,
   }));
 
   const edgesByPhase: Record<Phase, Edge[]> = {
@@ -99,8 +116,5 @@ export function graphForHour(state: HourState, phase: Phase): { nodes: Node[]; e
 }
 
 export function phaseLabel(phase: Phase): string {
-  if (phase === 'price') return 'Market publishes current price';
-  if (phase === 'decide') return 'House policies choose battery actions';
-  if (phase === 'submit') return 'Houses submit market loads';
-  return 'Market aggregates and computes next price';
+  return PHASE_LABELS[phase];
 }

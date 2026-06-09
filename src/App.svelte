@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { Background, BackgroundVariant, Controls, MiniMap, SvelteFlow } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
-  import type { Edge, Node } from '@xyflow/svelte';
 
   import MetricsPanel from './lib/components/MetricsPanel.svelte';
   import PriceCurve from './lib/components/PriceCurve.svelte';
@@ -12,8 +11,6 @@
   import { simulateMarket } from './lib/market/simulator';
 
   const states = simulateMarket();
-  let nodes = $state<Node[]>([]);
-  let edges = $state<Edge[]>([]);
 
   let hour = $state(0);
   let phaseIndex = $state(0);
@@ -22,12 +19,7 @@
 
   let phase = $derived(PHASES[phaseIndex]);
   let currentState = $derived(states[hour]);
-
-  function syncGraph() {
-    const graph = graphForHour(currentState, phase);
-    nodes = graph.nodes;
-    edges = graph.edges;
-  }
+  let graph = $derived(graphForHour(currentState, phase));
 
   function setHour(nextHour: number) {
     hour = Math.max(0, Math.min(EPISODE_HOURS - 1, nextHour));
@@ -66,10 +58,6 @@
   }
 
   $effect(() => {
-    syncGraph();
-  });
-
-  $effect(() => {
     if (!playing) return;
     const timer = window.setInterval(stepForward, 1100);
     return () => window.clearInterval(timer);
@@ -95,7 +83,14 @@
   <section class="workspace">
     <section class="flow-panel" aria-label="Market graph">
       {#if loaded}
-        <SvelteFlow {nodes} {edges} fitView minZoom={0.45} maxZoom={1.35} nodesDraggable={false}>
+        <SvelteFlow
+          nodes={graph.nodes}
+          edges={graph.edges}
+          fitView
+          minZoom={0.45}
+          maxZoom={1.35}
+          nodesDraggable={false}
+        >
           <Controls />
           <MiniMap pannable zoomable />
           <Background variant={BackgroundVariant.Dots} gap={18} size={1} />

@@ -2,7 +2,6 @@ import { actionDelta, actionLabel, choosePolicyAction } from './policies';
 import {
   INITIAL_PRICE,
   PROFILE1_DEMAND,
-  actionToMarketLoad,
   clampMarketLoad,
   priceFromAverageLoad,
   type BatteryAction,
@@ -67,9 +66,8 @@ export function simulateMarket(
         priceHistory,
       });
       const proposedLoad = baseDemand + actionDelta(action);
-      const actionLoad = actionToMarketLoad(action, baseDemand, batteryBefore);
       const clamp = clampMarketLoad(proposedLoad, baseDemand, batteryBefore);
-      const marketLoad = actionLoad === clamp.marketLoad ? actionLoad : clamp.marketLoad;
+      const marketLoad = clamp.marketLoad;
       const batteryAfter = batteryBefore + marketLoad - baseDemand;
       const cost = currentPrice * marketLoad;
       batteries.set(house.id, batteryAfter);

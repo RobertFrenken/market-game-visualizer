@@ -57,20 +57,6 @@ export function clampMarketLoad(
   return { marketLoad: proposedLoad, warning: '' };
 }
 
-export function actionToMarketLoad(
-  action: BatteryAction,
-  baseDemand: number,
-  batteryCharge: number,
-): number {
-  if (action === -1) {
-    return clampMarketLoad(baseDemand - MAX_DISCHARGE, baseDemand, batteryCharge).marketLoad;
-  }
-  if (action === 1) {
-    return clampMarketLoad(baseDemand + MAX_CHARGE, baseDemand, batteryCharge).marketLoad;
-  }
-  return baseDemand;
-}
-
 export function formatNumber(value: number, digits = 2): string {
   return value.toFixed(digits).replace(/\.?0+$/, '');
 }

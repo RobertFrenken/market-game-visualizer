@@ -25,6 +25,16 @@ npm run check
 npm run build
 ```
 
+## GitHub Pages
+
+The `main` branch deploys the static demo with GitHub Actions. Enable Pages in
+the repository settings with **GitHub Actions** as the source, then pushes to
+`main` will publish the Vite build to:
+
+```text
+https://robertfrenken.github.io/market-game-visualizer/
+```
+
 ## Implementation
 
 - `src/lib/market`: pure TypeScript market rules and deterministic simulation.
